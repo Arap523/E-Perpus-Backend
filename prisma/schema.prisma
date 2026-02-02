@@ -1,0 +1,196 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model admin {
+  id              Int       @id @default(autoincrement())
+  user_id         Int
+  created_at      DateTime? @default(now()) @db.Timestamp(0)
+  updated_at      DateTime? @default(now()) @updatedAt @db.Timestamp(0)
+  alamat          String?   @db.VarChar(255)
+  telepon         String?   @db.VarChar(15)
+  profile_picture String?   @db.VarChar(255)
+  users           users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "admin_ibfk_1")
+
+  @@index([user_id], map: "user_id")
+}
+
+model buku {
+  id                     Int       @id @default(autoincrement())
+  judul                  String    @db.VarChar(255)
+  penulis                String?   @db.VarChar(100)
+  penerbit               String?   @db.VarChar(100)
+  tahun_terbit           Int?      @db.Year
+  kategori_id            Int
+  isbn                   String?   @unique(map: "isbn") @db.VarChar(50)
+  deskripsi              String?   @db.Text  
+  harga                  Int?
+  created_at             DateTime? @default(now()) @db.Timestamp(0)
+  updated_at             DateTime? @default(now()) @updatedAt @db.Timestamp(0)
+  cover                  String?   @db.VarChar(255)
+  non_tersedia_inventory Int?      @default(0)
+  total_eksemplar        Int?      @default(0)
+  kategori               kategori  @relation(fields: [kategori_id], references: [id], onUpdate: NoAction, map: "buku_ibfk_1")
+  eksemplar              eksemplar[]
+
+  @@index([kategori_id], map: "kategori_id")
+
+}
+
+model eksemplar {
+  id             Int               @id @default(autoincrement())
+  buku_id        Int
+  kode_eksemplar String            @unique(map: "kode_eksemplar") @db.VarChar(50)
+  no_inventaris  String?           @db.VarChar(50)
+  tinggi_buku    String?           @db.VarChar(100)
+  status         eksemplar_status?
+  created_at     DateTime?         @default(now()) @db.Timestamp(0)
+  updated_at     DateTime?         @default(now()) @updatedAt @db.Timestamp(0)
+  buku           buku              @relation(fields: [buku_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "eksemplar_ibfk_1")
+  peminjaman     peminjaman[]
+
+  @@index([buku_id], map: "buku_id")
+}
+
+model kategori {
+  id            Int       @id @default(autoincrement())
+  nama_kategori String    @unique(map: "nama_kategori") @db.VarChar(100)
+  created_at    DateTime? @default(now()) @db.Timestamp(0)
+  updated_at    DateTime? @default(now()) @updatedAt @db.Timestamp(0)
+  buku          buku[]
+}
+
+model laporan {
+  id_laporan Int          @id @default(autoincrement())
+  peminjaman peminjaman[]
+}
+
+model murid {
+  id              Int                 @id @default(autoincrement())
+  user_id         Int
+  nis             String              @unique(map: "nis") @db.VarChar(20)
+  kelas           String              @db.VarChar(20)
+  jurusan         String?             @db.VarChar(50)
+  jenis_kelamin   murid_jenis_kelamin
+  alamat          String              @db.VarChar(255)
+  telepon         String              @db.VarChar(15)
+  status          murid_status        @default(tidak_aktif)
+  created_at      DateTime?           @default(now()) @db.Timestamp(0)
+  updated_at      DateTime?           @default(now()) @updatedAt @db.Timestamp(0)
+  profile_picture String?             @db.VarChar(255)
+  users           users               @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "murid_ibfk_1")
+  notifikasi      notifikasi[]
+  peminjaman      peminjaman[]
+
+  @@index([user_id], map: "user_id")
+}
+
+model notifikasi {
+  id         Int                @id @default(autoincrement())
+  murid_id   Int
+  pesan      String             @db.Text
+  status     notifikasi_status? @default(unread)
+  created_at DateTime?          @default(now()) @db.Timestamp(0)
+  murid      murid              @relation(fields: [murid_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "notifikasi_ibfk_1")
+
+  @@index([murid_id], map: "notifikasi_ibfk_1")
+}
+
+model notifikasi_admin {
+  id         Int                      @id @default(autoincrement())
+  user_id    Int
+  pesan      String                   @db.Text
+  status     notifikasi_admin_status? @default(unread)
+  link       String?                  @db.VarChar(255)
+  created_at DateTime?                @default(now()) @db.Timestamp(0)
+  users      users                    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "notif_admin_fk_1")
+
+  @@index([user_id], map: "user_id")
+}
+
+model peminjaman {
+  id              Int                       @id @default(autoincrement())
+  kode_booking    String?                   @db.VarChar(50)
+  murid_id        Int
+  eksemplar_id    Int
+  status_pinjam   peminjaman_status_pinjam? @default(booking)
+  tanggal_pinjam  DateTime                  @db.DateTime(0)
+  tanggal_kembali DateTime                  @db.DateTime(0)
+  tanggal_actual  DateTime?                 @db.DateTime(0)
+  denda           Decimal?                  @default(0.00) @db.Decimal(10, 2)
+  keterangan      String?   @db.Text
+  created_at      DateTime?                 @default(now()) @db.Timestamp(0)
+  updated_at      DateTime?                 @default(now()) @updatedAt @db.Timestamp(0)
+  id_laporan      Int?
+  laporan         laporan?                  @relation(fields: [id_laporan], references: [id_laporan], onUpdate: NoAction, map: "fk_id_laporan")
+  murid           murid                     @relation(fields: [murid_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "peminjaman_ibfk_1")
+  eksemplar       eksemplar                 @relation(fields: [eksemplar_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "peminjaman_ibfk_2")
+
+  @@index([id_laporan], map: "fk_id_laporan")
+  @@index([murid_id], map: "murid_id")
+  @@index([eksemplar_id], map: "peminjaman_ibfk_2")
+}
+
+model role {
+  id         Int       @id @default(autoincrement())
+  nama_role  String    @unique(map: "nama_role") @db.VarChar(50)
+  created_at DateTime? @default(now()) @db.Timestamp(0)
+  updated_at DateTime? @default(now()) @updatedAt @db.Timestamp(0)
+  users      users[]
+}
+
+model users {
+  id               Int                @id @default(autoincrement())
+  email            String             @unique(map: "email") @db.VarChar(100)
+  password         String             @db.VarChar(255)
+  namaLengkap      String             @db.VarChar(100)
+  role_id          Int
+  created_at       DateTime?          @default(now()) @db.Timestamp(0)
+  updated_at       DateTime?          @default(now()) @updatedAt @db.Timestamp(0)
+  admin            admin[]
+  murid            murid[]
+  notifikasi_admin notifikasi_admin[]
+  role             role               @relation(fields: [role_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "users_ibfk_1")
+
+  @@index([role_id], map: "role_id")
+}
+
+enum notifikasi_admin_status {
+  unread
+  read
+}
+
+enum notifikasi_status {
+  unread
+  read
+}
+
+enum peminjaman_status_pinjam {
+  booking
+  dipinjam
+  selesai
+  batal
+}
+
+enum eksemplar_status {
+  tersedia
+  dipinjam
+  booking
+  rusak
+  hilang
+}
+
+enum murid_jenis_kelamin {
+  Laki_laki @map("Laki-laki")
+  Perempuan
+}
+
+enum murid_status {
+  aktif
+  tidak_aktif @map("tidak aktif")
+}
