@@ -39,7 +39,9 @@ require("./utils/scheduler");
 app.use(
   cors({
     // GANTI: Masukkan URL Netlify kamu di sini
-    origin: ["https://project-kamu.netlify.app", "http://localhost:5173"],
+    origin: [ 'http://localhost:5173',
+    'http://localhost:3000',
+    'https://e-perpus.netlify.app',],
     credentials: true,
   }),
 );
